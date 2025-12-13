@@ -1,11 +1,11 @@
 import tkinter as tk
-from tkinter import ttk, messagebox, simpledialog # <-- Added simpledialog for popups
+from tkinter import ttk, messagebox, simpledialog 
 from PIL import Image, ImageTk
-# Import ALL necessary functions from db
+# Note: You must ensure 'db.py' contains these functions:
 from db import get_products, handle_add_or_update, update_product, delete_product 
-from db import get_orders, create_new_order, delete_order, update_payment_status, get_income_report, get_order_items# <-- NEW IMPORTS
+from db import get_orders, create_new_order, delete_order, update_payment_status, get_income_report, get_order_items
 
-# --- Main Application Class ---
+# --- 1. Custom Status Dialog ---
 class StatusDialog(tk.Toplevel):
     """A custom modal dialog for selecting the order status."""
     def __init__(self, parent, order_id):
@@ -16,23 +16,22 @@ class StatusDialog(tk.Toplevel):
         self.title(f"Change Status for Order {order_id}")
         self.result_status = None
         
-        # Center the dialog
+        # Center the dialog logic (using parent's geometry)
         parent_x = parent.winfo_rootx()
         parent_y = parent.winfo_rooty()
         parent_width = parent.winfo_width()
         parent_height = parent.winfo_height()
         
-        # Calculate position for center
-        self.update_idletasks()
-        dialog_width = self.winfo_width()
-        dialog_height = self.winfo_height()
+        self.update_idletasks() # Calculate actual size before positioning
+        dialog_width = 300 # Approximate width
+        dialog_height = 150 # Approximate height
         
         x = parent_x + (parent_width // 2) - (dialog_width // 2)
         y = parent_y + (parent_height // 2) - (dialog_height // 2)
-        self.geometry(f'+{x}+{y}')
+        self.geometry(f'{dialog_width}x{dialog_height}+{x}+{y}')
 
         # UI Elements
-        ttk.Label(self, text="Select New Status:").pack(pady=10)
+        ttk.Label(self, text="Select New Status:", font=("Arial", 12, "bold")).pack(pady=10)
 
         # Buttons for each status
         statuses = ['Paid', 'Pending', 'Cancelled']
@@ -56,6 +55,7 @@ class StatusDialog(tk.Toplevel):
         self.wait_window(self)
         return self.result_status
     
+# --- 2. Main Application Class ---
 class InventoryApp(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -90,12 +90,10 @@ class InventoryApp(tk.Tk):
     def load_icon(self, path, size):
         try:
             img = Image.open(path)
-            # Use Image.LANCZOS for high-quality resizing
             img = img.resize(size, Image.LANCZOS)
             return ImageTk.PhotoImage(img)
         except Exception as e:
-            # Better error handling for missing files
-            # print(f"Could not load icon {path}: {e}")
+            # Fallback if image files are missing
             return None
 
     # Clear previous frame
@@ -105,7 +103,7 @@ class InventoryApp(tk.Tk):
         self.active_frame = new_frame
         self.active_frame.pack(fill="both", expand=True)
 
-    # --- LOGIN PANEL (Unchanged) ---
+    # --- LOGIN PANEL ---
     def show_login(self):
         frame = tk.Frame(self, bg="#F5F6FA")
 
@@ -124,7 +122,6 @@ class InventoryApp(tk.Tk):
         self.password_entry.grid(row=1, column=1, pady=5)
 
 
-        # New: Add a label to display error messages
         self.login_message_label = tk.Label(frame, text="", fg="red", bg="#F5F6FA", font=("Arial", 12))
         self.login_message_label.pack(pady=10)
 
@@ -136,23 +133,22 @@ class InventoryApp(tk.Tk):
             width=12,
         command=self.authenticate_user)
         login_btn.pack(pady=30)
-      
+        
         self.switch_frame(frame)
 
     def authenticate_user(self):
         username = self.username_entry.get()
         password = self.password_entry.get()
 
-        # Hardcoded Credentials (Replace this with a database check later)
         if username == "admin" and password == "1234":
-            self.login_message_label.config(text="") # Clear any previous error
+            self.login_message_label.config(text="")
             self.show_dashboard()
         else:
             self.login_message_label.config(text="Invalid Username or Password.", fg="red")
-            self.password_entry.delete(0, tk.END)     
+            self.password_entry.delete(0, tk.END)    
 
 
-    # --- DASHBOARD PANEL (Unchanged) ---
+    # --- DASHBOARD PANEL ---
     def show_dashboard(self):
         frame = tk.Frame(self, bg="#FFFFFF", padx=40, pady=40)
 
@@ -192,7 +188,7 @@ class InventoryApp(tk.Tk):
 
         self.switch_frame(frame)
 
-    # Helper to create icon buttons (Unchanged)
+    # Helper to create icon buttons
     def create_icon_button(self, parent, icon, label, command):
         frame = tk.Frame(parent, bg="#FFFFFF")
         btn = tk.Button(frame, image=icon, command=command, relief="flat", bg="#FFFFFF", activebackground="#F0F0F0")
@@ -214,27 +210,26 @@ class InventoryApp(tk.Tk):
               )
         lbl.pack(pady=5)
 
-        # Bind click events to all widgets in the frame so a click anywhere triggers the command
-        for widget in (frame, lbl):
+        # Bind click events to all widgets
+        for widget in (frame, btn, lbl):
               widget.bind("<Button-1>", lambda e: command())
 
         return frame
 
-    # --- PRODUCT PANEL (Unchanged) ---
+    # --- PRODUCT PANEL ---
+    # This remains unchanged from the previous, functional version
     def show_products(self):
         frame = tk.Frame(self, bg="#F5F6FA", padx=20, pady=20)
 
-        # Return button should be defined before the title if we want it top-right
         return_btn = tk.Button(frame, text="← Back", font=("Arial", 12, "bold"),
-                           bg="#BDC3C7", fg="#2C3A47", width=10,
-                           relief="flat", command=self.show_dashboard)
-        # Use place for precise top-right positioning
+                             bg="#BDC3C7", fg="#2C3A47", width=10,
+                             relief="flat", command=self.show_dashboard)
         return_btn.place(relx=1.0, rely=0, x=-20, y=20, anchor="ne") 
         
         title = tk.Label(frame, text="Product Management", font=("Arial", 22, "bold"), bg="#F5F6FA", fg="#2C3A47")
         title.pack(anchor="w", pady=(0, 10))
 
-        # --- NEW STATUS MESSAGE LABEL ---
+        # --- STATUS MESSAGE LABEL ---
         self.product_status_label = tk.Label(frame, text="", bg="#F5F6FA", font=("Arial", 12, "bold"))
         self.product_status_label.pack(anchor="w", pady=(5, 5))
 
@@ -242,7 +237,7 @@ class InventoryApp(tk.Tk):
         form = tk.Frame(frame, bg="#F5F6FA")
         form.pack(anchor="w", pady=10)
 
-        # --- ENTRY WIDGETS (Defined First, so select_item can reference them) ---
+        # --- ENTRY WIDGETS ---
         tk.Label(form, text="Product Name", font=("Arial", 14), bg="#F5F6FA").grid(row=0, column=0, padx=5, pady=5, sticky="w")
         name_entry = tk.Entry(form, font=("Arial", 14), width=30)
         name_entry.grid(row=0, column=1, padx=5)
@@ -255,14 +250,14 @@ class InventoryApp(tk.Tk):
         stock_entry = tk.Entry(form, font=("Arial", 14), width=30)
         stock_entry.grid(row=2, column=1, padx=5)
         
-        # --- TABLE DEFINITION (Defined before select_item/refresh_table) ---
+        # --- TABLE DEFINITION ---
         table_frame = tk.Frame(frame)
         table_frame.pack(fill="both", expand=True, pady=(20, 0)) 
         
         columns = ("ID", "Name", "Price", "Stock")
         table = ttk.Treeview(table_frame, columns=columns, show="headings")
 
-        # Scrollbar for the table (Good Practice)
+        # Scrollbar
         vsb = ttk.Scrollbar(table_frame, orient="vertical", command=table.yview)
         table.configure(yscrollcommand=vsb.set)
         vsb.pack(side='right', fill='y')
@@ -279,30 +274,25 @@ class InventoryApp(tk.Tk):
 
             products = get_products()
             for prod in products:
-                # Use prod as a tuple for values
                 table.insert("", "end", values=prod)
 
         # --- SELECTION HANDLER FUNCTION ---
         def select_item(event):
-            # Get the ID of the selected item in the Treeview
             selected_item = table.focus()
             
-            # If an item is actually selected
             if selected_item:
-                # Get the values for that row (ID, Name, Price, Stock)
                 values = table.item(selected_item, 'values')
                 
-                # Clear all entry fields first
                 name_entry.delete(0, tk.END)
                 price_entry.delete(0, tk.END)
                 stock_entry.delete(0, tk.END)
                 
-                # Insert Name and Price from the selected row into the entry fields
-                name_entry.insert(0, values[1]) # Index 1 is Name
-                price_entry.insert(0, values[2]) # Index 2 is Price
+                name_entry.insert(0, values[1])
+                price_entry.insert(0, values[2])
+                stock_entry.insert(0, values[3]) # Show current stock for reference
 
         # --- BIND THE FUNCTION TO THE TABLE ---
-        table.bind("<<TreeviewSelect>>", select_item) # Event fires when selection changes
+        table.bind("<<TreeviewSelect>>", select_item)
 
         # --- BUTTON FUNCTIONS ---
         def add_product_btn():
@@ -310,7 +300,6 @@ class InventoryApp(tk.Tk):
                 name = name_entry.get()
                 price = float(price_entry.get())
                 
-                # Check for empty stock before processing
                 stock_input = stock_entry.get()
                 if not stock_input:
                     tk.messagebox.showerror("Input Error", "Stock quantity is required for an Add operation.")
@@ -323,19 +312,15 @@ class InventoryApp(tk.Tk):
                 
                 if success:
                     refresh_table()
-                    # Show success/update message
                     self.product_status_label.config(text=message, fg="green")
                     
-                    # Clear entries after successful add/update
                     name_entry.delete(0, tk.END)
                     price_entry.delete(0, tk.END)
                     stock_entry.delete(0, tk.END)
                 else:
-                    # Show error message from database operation
                     self.product_status_label.config(text=message, fg="red")
                     
             except ValueError:
-                # Use messagebox for user feedback
                 tk.messagebox.showerror("Input Error", "Price must be a number and Stock must be an integer.")
                 self.product_status_label.config(text="Input Error: Check Price and Stock fields.", fg="red")
 
@@ -348,7 +333,7 @@ class InventoryApp(tk.Tk):
                     name = name_entry.get()
                     price = float(price_entry.get())
                     
-                    # FIX: Handle empty stock field for Update
+                    # Use new stock value if provided, otherwise use old value
                     new_stock_input = stock_entry.get()
                     if new_stock_input:
                         stock = int(new_stock_input)
@@ -359,7 +344,6 @@ class InventoryApp(tk.Tk):
                         refresh_table()
                         self.product_status_label.config(text=f"Product ID {product_id} updated successfully.", fg="green")
 
-                        # Clear entries after successful update
                         name_entry.delete(0, tk.END)
                         price_entry.delete(0, tk.END)
                         stock_entry.delete(0, tk.END)
@@ -374,7 +358,6 @@ class InventoryApp(tk.Tk):
         def delete_product_btn():
             selected = table.focus()
             if selected:
-                # Add confirmation for delete operation (Good Practice)
                 if tk.messagebox.askyesno("Confirm Delete", "Are you sure you want to delete the selected product?"):
                     values = table.item(selected, "values")
                     product_id = values[0]
@@ -382,7 +365,6 @@ class InventoryApp(tk.Tk):
                         refresh_table()
                         self.product_status_label.config(text=f"Product ID {product_id} deleted successfully.", fg="green")
 
-                        # Clear entries after successful delete
                         name_entry.delete(0, tk.END)
                         price_entry.delete(0, tk.END)
                         stock_entry.delete(0, tk.END)
@@ -406,8 +388,8 @@ class InventoryApp(tk.Tk):
         self.switch_frame(frame)
 
     # # ===================================================================
-    # --- ORDER PANEL (IMPLEMENTED as a POS) ---
-    # ===================================================================
+    # --- ORDER PANEL (POS and History) ---
+    # # ===================================================================
     def show_orders(self):
         frame = tk.Frame(self, bg="#F5F6FA", padx=20, pady=20)
         
@@ -476,8 +458,6 @@ class InventoryApp(tk.Tk):
         tk.Button(cart_btn_frame, text="Clear Cart", bg="#FFD479", fg="black", command=lambda: (self.current_cart.clear(), self.refresh_cart_display())).pack(side="right", fill="x", expand=True)
 
 
-       
-
         # --- Finalize Button ---
         def finalize_order():
             if not self.current_cart:
@@ -499,8 +479,8 @@ class InventoryApp(tk.Tk):
                 messagebox.showinfo("Success", f"Order {order_id} placed successfully!\nTotal: ₱{self.current_total.get()}")
                 self.current_cart.clear()
                 self.refresh_cart_display()
-                self.refresh_order_history()
-                self.refresh_product_table_in_orders()# Update history on the right
+                self.refresh_order_history() # Update history on the right
+                self.refresh_product_table_in_orders() # Update available products list
             else:
                 messagebox.showerror("Error", f"Failed to finalize order: {message}")
                 self.order_status_label.config(text=f"Failed: {message}", fg="red")
@@ -524,7 +504,7 @@ class InventoryApp(tk.Tk):
         for col in product_columns:
             self.product_table.heading(col, text=col)
 
-        # --- Refresh Product Table ---
+        # --- Refresh Product Table Helper (specific to orders panel) ---
         def refresh_product_table_in_orders():
             for item in self.product_table.get_children():
                 self.product_table.delete(item)
@@ -534,7 +514,9 @@ class InventoryApp(tk.Tk):
                 if int(prod[3]) > 0: 
                     self.product_table.insert("", "end", values=prod)
         
-        self.refresh_product_table_in_orders = refresh_product_table_in_orders            
+        # Assign to self for external calls (like from status change or delete order)
+        self.refresh_product_table_in_orders = refresh_product_table_in_orders
+
         refresh_product_table_in_orders()
 
 
@@ -548,21 +530,17 @@ class InventoryApp(tk.Tk):
                 price = float(values[2])
                 stock = int(values[3])
                 
+                current_qty_in_cart = self.current_cart.get(product_id, {}).get('qty', 0)
+
                 # Ask for quantity
                 quantity = simpledialog.askinteger("Quantity", f"Enter quantity for {name} (Max available: {stock - current_qty_in_cart}):", 
-                                                 parent=frame, minvalue=1, maxvalue=(stock - current_qty_in_cart))
+                                                    parent=frame, minvalue=1, maxvalue=(stock - current_qty_in_cart))
+                
                 if quantity:
                     if product_id in self.current_cart:
                         # Item already in cart, update quantity
-                        current_qty = self.current_cart[product_id]['qty']
-                        new_qty = current_qty + quantity
-                        
-                        if new_qty > stock:
-                            messagebox.showwarning("Stock Error", f"Cannot add {quantity} more. Total requested {new_qty} exceeds stock of {stock}.")
-                            return
-                            
+                        new_qty = current_qty_in_cart + quantity
                         self.current_cart[product_id]['qty'] = new_qty
-                        
                     else:
                         # New item
                         self.current_cart[product_id] = {'name': name, 'price': price, 'qty': quantity}
@@ -571,9 +549,7 @@ class InventoryApp(tk.Tk):
                 
         self.product_table.bind("<Double-1>", add_item_to_cart)
         
-     
-       
-
+    
         # --- RIGHT SIDE: Order History Panel (65% width) ---
         history_panel = tk.Frame(main_split, bg="#FFFFFF", padx=10, pady=10, relief="groove")
         history_panel.pack(side="right", fill="both", expand=True)
@@ -603,15 +579,17 @@ class InventoryApp(tk.Tk):
         history_btn_frame = tk.Frame(history_panel, bg="#FFFFFF")
         history_btn_frame.pack(fill="x", pady=10)
         
+        # Defined here for local calls, but also assigned to self below
         def refresh_orders_table():
             for item in self.history_table.get_children():
                 self.history_table.delete(item)
             orders = get_orders() 
             for order in orders:
                 self.history_table.insert("", "end", values=order)
-        self.refresh_order_history = refresh_orders_table        
 
-        def view_order_details(): 
+        self.refresh_order_history = refresh_orders_table # Assign to self for external calls
+
+        def view_order_details():
             selected = self.history_table.focus()
             if selected:
                 values = self.history_table.item(selected, "values")
@@ -631,7 +609,7 @@ class InventoryApp(tk.Tk):
                 messagebox.showinfo("Order Details", detail_text)
 
         def delete_history_order():
-           
+            
             selected = self.history_table.focus()
             if selected:
                 values = self.history_table.item(selected, "values")
@@ -641,54 +619,51 @@ class InventoryApp(tk.Tk):
                     success, msg = delete_order(order_id)
                     if success:
                         messagebox.showinfo("Success", msg)
-                        refresh_orders_table()
-                        refresh_product_table_in_orders() # Stock changed, so update products too
+                        self.refresh_order_history()
+                        self.refresh_product_table_in_orders() # Stock changed, so update products too
                     else:
                         messagebox.showerror("Error", f"Deletion Failed: {msg}")
 
-    def change_order_status(self):
-           
-            # 1. Get Selected Order ID
+        # The corrected change_order_status method, now defined inside the class
+        def change_order_status():
             selection = self.history_table.selection()
             if not selection:
                 messagebox.showwarning("Warning", "Please select an order to change status.")
                 return
 
-            order_id = self.order_history_table.item(selection, 'values')[0]
+            order_values = self.history_table.item(selection[0], 'values')
+            order_id = int(order_values[0])
 
-            # 2. Use the custom dialog instead of askstring
-            dialog = StatusDialog(self, order_id) # self.root is usually the main window
-            new_status = dialog.show() # Wait for the user selection
+            # Use 'self' (the main TK window) as the parent
+            dialog = StatusDialog(self, order_id) 
+            new_status = dialog.show() 
 
-            # 3. Check if a status was selected (user didn't close the window)
             if not new_status:
                 return
 
-            # 4. Call DB function to update status and handle income
-            # (Ensure db.update_order_status is still implemented in db.py as discussed)
-            success, message = update_payment_status(order_id, new_status)
+            # Call DB function to update status and handle inventory changes
+            success, message = update_payment_status(order_id, new_status) # Corrected function call
 
             if success:
                 messagebox.showinfo("Success", message)
-                self.refresh_order_history() # Refresh the display
-                self.refresh_product_table_in_orders()
+                self.refresh_order_history() 
+                self.refresh_product_table_in_orders() # Stock might have been released/deducted
             else:
                 messagebox.showerror("Error", f"Failed to update status: {message}")
+        
+        # Buttons for History Panel
+        tk.Button(history_btn_frame, text="View Details", bg="#1B9CFC", fg="white", command=view_order_details).pack(side="left", padx=5)
+        tk.Button(history_btn_frame, text="Change Status", bg="#3867D6", fg="white", command=change_order_status).pack(side="left", padx=5)
+        tk.Button(history_btn_frame, text="Delete Order", bg="#FC5C65", fg="white", command=delete_history_order).pack(side="left", padx=5)
 
 
-            tk.Button(history_btn_frame, text="View Details", bg="#1B9CFC", fg="white", command=view_order_details).pack(side="left", padx=5)
-            tk.Button(history_btn_frame, text="Change Status", bg="#3867D6", fg="white", command=self.change_order_status).pack(side="left", padx=5)
-            tk.Button(history_btn_frame, text="Delete Order", bg="#FC5C65", fg="white", command=delete_history_order).pack(side="left", padx=5)
+        refresh_orders_table()
+        self.switch_frame(frame)
 
-
-            refresh_orders_table()
-            self.switch_frame(frame)
-
+    # --- Cart Helper ---
     def refresh_cart_display(self):
         """Refreshes the cart Treeview and updates the total label."""
-        # Ensure cart_table exists before trying to manipulate it
         if not hasattr(self, 'cart_table'):
-            # This shouldn't happen if show_orders ran, but is a safe guard
             return 
             
         # Clear existing items
@@ -710,13 +685,8 @@ class InventoryApp(tk.Tk):
             ))
         
         self.current_total.set(f"{current_total_value:.2f}")
-            
-#### 3. Rework `show_income` Function (Unchanged, but ensures it uses `get_income_report`)
-
-
-    # ===================================================================
-    # --- INCOME PANEL (Uses 'Paid' Status) ---
-    # ===================================================================
+    
+    # --- INCOME PANEL (Placeholder for completeness) ---
     def show_income(self):
         frame = tk.Frame(self, bg="#F5F6FA", padx=20, pady=20)
 
@@ -795,7 +765,6 @@ class InventoryApp(tk.Tk):
         self.switch_frame(frame)
 
 
-# Run the app
 if __name__ == "__main__":
     app = InventoryApp()
     app.mainloop()
