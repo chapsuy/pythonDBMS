@@ -17,6 +17,21 @@ def connect_db():
         print("Database connection failed:", e)
         return None
 
+
+def check_user_credentials(username):
+    # This function should retrieve the HASHED password from the DB.
+    conn = connect_db()
+    if not conn:
+        return None 
+    cursor = conn.cursor()
+    # Select only the username and password field
+    cursor.execute("SELECT password FROM User WHERE username = ?", (username,))
+    result = cursor.fetchone()
+    conn.close()
+    
+    return result[0] if result else None # Returns the stored password (hash)
+
+
 # --- PRODUCT FUNCTIONS ---
 
 def get_products():
