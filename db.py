@@ -2,7 +2,7 @@ import mariadb
 import datetime
 import calendar 
 
-# --- Connection Function ---
+# Connection 
 def connect_db():
     try:
         conn = mariadb.connect(
@@ -19,20 +19,20 @@ def connect_db():
 
 
 def check_user_credentials(username):
-    # This function should retrieve the HASHED password from the DB.
+   
     conn = connect_db()
     if not conn:
         return None 
     cursor = conn.cursor()
-    # Select only the username and password field
+    
     cursor.execute("SELECT password FROM User WHERE username = ?", (username,))
     result = cursor.fetchone()
     conn.close()
     
-    return result[0] if result else None # Returns the stored password (hash)
+    return result[0] if result else None 
 
 
-# --- PRODUCT FUNCTIONS ---
+#  PRODUCT 
 
 def get_products():
     """Fetches all product records, converting price to float."""
@@ -44,7 +44,7 @@ def get_products():
     result = cursor.fetchall()
     conn.close()
     
-    # FIX: Convert Decimal price to float for consistency in application
+   
     formatted_result = []
     for product_id, name, price, stock in result:
         formatted_result.append((product_id, name, float(price), stock))
@@ -143,7 +143,7 @@ def get_orders():
             order_id, 
             customer_name, 
             order_date_str, 
-            f"{float(total_amount):.2f}", # FIX: Convert to float for display formatting
+            f"{float(total_amount):.2f}", 
             payment_status
         ))
         
@@ -157,7 +157,7 @@ def get_order_items(order_id):
         return []
         
     cursor = conn.cursor()
-    # FIX: Changed oi.item_id to oi.order_item_id to match the table schema
+    
     try:
         cursor.execute("""
             SELECT 
@@ -192,7 +192,7 @@ def create_new_order(customer_name, order_items_list):
     cursor = conn.cursor()
     
     try:
-        # 1. Create Order Header 
+       
         cursor.execute(
             "INSERT INTO order_header (customer_name) VALUES (?)",
             (customer_name,)
@@ -200,16 +200,16 @@ def create_new_order(customer_name, order_items_list):
         order_id = cursor.lastrowid
         total_amount = 0.0
         
-        # 2. Add Order Items and Calculate Total
+       
         for product_id, quantity in order_items_list:
-            # Get current product price and stock
+           
             cursor.execute("SELECT price, stock FROM products WHERE product_id=?", (product_id,))
             product_data = cursor.fetchone()
             
             if not product_data:
                 raise Exception(f"Product ID {product_id} not found.")
 
-            # FIX: Convert price (Decimal) to float immediately for safe calculations
+          
             price = float(product_data[0]) 
             current_stock = product_data[1]
             
@@ -220,7 +220,7 @@ def create_new_order(customer_name, order_items_list):
             line_total = price * quantity
             total_amount += line_total
             
-            # Insert item into order_items
+           
             cursor.execute(
                 "INSERT INTO order_items (order_id, product_id, quantity, price_at_sale) VALUES (?, ?, ?, ?)",
                 (order_id, product_id, quantity, price)
@@ -233,7 +233,7 @@ def create_new_order(customer_name, order_items_list):
                 (new_stock, product_id)
             )
 
-        # 3. Update Order Header with Final Total and set to 'Paid'
+       
         cursor.execute(
             "UPDATE order_header SET total_amount=?, payment_status='Paid' WHERE order_id=?",
             (total_amount, order_id)
@@ -310,7 +310,7 @@ def delete_order(order_id):
             conn.close()
 
 
-# --- INCOME REPORTING FUNCTIONS ---
+# INCOME REPORT
     
 def get_income_summary(date_range_days=30):
     conn = connect_db()

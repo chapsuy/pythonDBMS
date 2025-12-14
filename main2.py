@@ -61,7 +61,7 @@ class InventoryApp(tk.Tk):
         
         self.title("Order Flow Inventory & Order Management System")
         
-        # Center the window
+       
         self.update_idletasks()
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
@@ -73,7 +73,7 @@ class InventoryApp(tk.Tk):
         
         self.configure(bg="#F5F6FA")
 
-        # Containers
+        
         self.active_frame = None
 
         # Load icons
@@ -81,7 +81,7 @@ class InventoryApp(tk.Tk):
         self.order_icon = self.load_icon("order_icon.png", (120, 120))
         self.income_icon = self.load_icon("income_icon.png", (120, 120))
 
-        # Start with login screen
+       
         self.show_login()
 
     # Load image helper
@@ -136,14 +136,13 @@ class InventoryApp(tk.Tk):
 
     def authenticate_user(self):
         username = self.username_entry.get()
-        password = self.password_entry.get() # User entered plain text
+        password = self.password_entry.get() 
         
-        # 1. Get the stored password (which is plain text 'admin123') from the DB
-        stored_password = check_user_credentials(username) # This will be 'admin123'
+        
+        stored_password = check_user_credentials(username) 
         
         if stored_password:
-            # 2. PERFORM DIRECT PLAIN TEXT COMPARISON
-            # We check the plain text input against the plain text stored in the database.
+            
             if password == stored_password:
                 self.login_message_label.config(text="")
                 self.show_dashboard()
@@ -151,7 +150,7 @@ class InventoryApp(tk.Tk):
                 self.login_message_label.config(text="Invalid Username or Password.", fg="red")
                 self.password_entry.delete(0, tk.END)
         else:
-            # Username not found
+            
             self.login_message_label.config(text="Invalid Username or Password.", fg="red")
             self.password_entry.delete(0, tk.END) 
 
